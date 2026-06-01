@@ -58,6 +58,8 @@ public class InternalMarketController : ControllerBase
             sentimentValue = _market.GetSentimentValue()
         });
     }
+
+
 }
 
 public record SentimentRequest(double Value);

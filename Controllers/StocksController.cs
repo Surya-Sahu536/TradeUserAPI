@@ -39,6 +39,32 @@ public class StocksController : ControllerBase
         });
     }
 
+    // UserAPI/Controllers/AdminStocksController.cs (internal endpoint)
+    [HttpPost("{id}/issue-shares")]
+    public async Task<IActionResult> IssueShares(int id, [FromBody] IssueSharesDto dto)
+    {
+        var stock = await _db.Stocks.FindAsync(id);
+        if (stock == null) return NotFound();
+
+        if (dto.AdditionalShares <= 0)
+            return BadRequest(new { message = "Additional shares must be greater than 0." });
+
+        stock.TotalShares += dto.AdditionalShares;
+        stock.AvailableShares += dto.AdditionalShares;
+        stock.LastUpdated = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = $"Issued {dto.AdditionalShares:N0} new shares for {stock.Symbol}.",
+            totalShares = stock.TotalShares,
+            availableShares = stock.AvailableShares
+        });
+    }
+
+    public record IssueSharesDto(long AdditionalShares, string Reason);
+
     private static StockDto ToDto(Stock s)
     {
         var change = s.OpenPrice == 0 ? 0 :
