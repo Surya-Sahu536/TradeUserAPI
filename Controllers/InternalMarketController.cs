@@ -6,18 +6,17 @@ namespace TradeUserAPI.Controllers;
 /// <summary>
 /// Internal endpoints called only by AdminAPI — not exposed to users.
 /// No [Authorize] since AdminAPI calls these server-to-server.
-/// In production you'd secure this with a shared API key or network policy.
 /// </summary>
 [ApiController]
 [Route("api/internal/market")]
 public class InternalMarketController : ControllerBase
 {
-    private readonly MarketEngine          _market;
+    private readonly MarketEngine _market;
     private readonly PriceSimulatorService _simulator;
 
     public InternalMarketController(MarketEngine market, PriceSimulatorService simulator)
     {
-        _market    = market;
+        _market = market;
         _simulator = simulator;
     }
 
@@ -25,7 +24,11 @@ public class InternalMarketController : ControllerBase
     public IActionResult SetSentiment([FromBody] SentimentRequest req)
     {
         _market.SetSentiment(req.Value);
-        return Ok(new { message = $"Market sentiment set to {_market.SentimentLabel}.", value = req.Value });
+        return Ok(new
+        {
+            message = $"Market sentiment set to {_market.SentimentLabel}.",
+            value = req.Value
+        });
     }
 
     [HttpPost("event")]
@@ -35,10 +38,10 @@ public class InternalMarketController : ControllerBase
         var direction = req.ImpactPercent >= 0 ? "📈" : "📉";
         return Ok(new
         {
-            message = $"{direction} Market event '{req.EventName}' applied to stock {req.StockId}. " +
+            message = $"{direction} Event '{req.EventName}' applied to stock {req.StockId}. " +
                       $"{req.ImpactPercent:+0.##;-0.##}% over {req.DurationTicks} ticks.",
             stockId = req.StockId,
-            impact  = req.ImpactPercent
+            impact = req.ImpactPercent
         });
     }
 
@@ -46,7 +49,10 @@ public class InternalMarketController : ControllerBase
     public IActionResult SetVolatility([FromBody] VolatilityRequest req)
     {
         _simulator.SetVolatility(req.StockId, req.Value);
-        return Ok(new { message = $"Volatility for stock {req.StockId} set to {req.Value}." });
+        return Ok(new
+        {
+            message = $"Volatility for stock {req.StockId} set to {req.Value}."
+        });
     }
 
     [HttpGet("status")]
@@ -54,12 +60,10 @@ public class InternalMarketController : ControllerBase
     {
         return Ok(new
         {
-            sentiment      = _market.SentimentLabel,
+            sentiment = _market.SentimentLabel,
             sentimentValue = _market.GetSentimentValue()
         });
     }
-
-
 }
 
 public record SentimentRequest(double Value);
