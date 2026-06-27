@@ -24,18 +24,44 @@ public class StocksController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
+        // Query 1: get stock without price history
         var stock = await _db.Stocks
-            .Include(s => s.PriceHistory.OrderByDescending(p => p.Timestamp).Take(100))
             .FirstOrDefaultAsync(s => s.Id == id && s.IsActive);
 
         if (stock == null) return NotFound();
 
+        // Query 2: get price history separately — fast with index
+        var priceHistory = await _db.PriceHistory
+            .Where(p => p.StockId == id)
+            .OrderByDescending(p => p.Timestamp)
+            .Take(100)
+            .OrderBy(p => p.Timestamp)   // re-order ascending for chart
+            .Select(p => new { p.Price, p.Timestamp })
+            .ToListAsync();
+
+        var change = stock.OpenPrice == 0 ? 0 :
+            Math.Round(((stock.CurrentPrice - stock.OpenPrice) / stock.OpenPrice) * 100, 2);
+
         return Ok(new
         {
-            stock = ToDto(stock),
-            priceHistory = stock.PriceHistory
-                .OrderBy(p => p.Timestamp)
-                .Select(p => new { p.Price, p.Timestamp })
+            stock = new
+            {
+                stock.Id,
+                stock.Symbol,
+                stock.CompanyName,
+                stock.Sector,
+                stock.CurrentPrice,
+                stock.OpenPrice,
+                stock.DayHigh,
+                stock.DayLow,
+                stock.PreviousClose,
+                stock.Volume,
+                stock.TotalShares,
+                stock.AvailableShares,
+                ChangePercent = change,
+                stock.LastUpdated
+            },
+            priceHistory
         });
     }
 
